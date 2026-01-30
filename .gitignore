@@ -1,0 +1,8 @@
+# Firebase config
+src/firebaseConfig.js
+
+# Environment variables
+.env
+.env.local
+.env.*
+*-Copia.env
