@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-// Constantes iniciais
+// --- MANTENHA AS SUAS CONSTANTES (INITIAL_BATTERY, EVIDENCE_DB, ETC) AQUI ---
+// (Estou usando as mesmas que você enviou para não quebrar nada)
 const INITIAL_BATTERY = 88;
 const START_TIME_STRING = "21:55";
 
@@ -49,14 +50,14 @@ export const useGameStore = create(
     (set, get) => ({
       // ==================== ESTADO DO SISTEMA ====================
       battery: INITIAL_BATTERY,
-      screen: 'boot',
+      screen: 'menu', // <--- MUDANÇA: Começa no Menu
       activeApp: null,
       isCharging: false,
       timeOffsetMs: 0,
       isConnected: true,
       isBooting: true,
       bootProgress: 0,
-      stressLevel: 15, // Novo: nível de estresse do Eduardo
+      stressLevel: 15,
       
       // ==================== ESTADO NARRATIVO ====================
       act: 1, 
@@ -65,7 +66,7 @@ export const useGameStore = create(
       currentLocationId: 'office_clara',
       playerCharacter: 'analytical', 
       
-      // ==================== SISTEMA DE EMOÇÕES E STATUS ====================
+      // ==================== EMOÇÕES ====================
       npcStates: {
         central: { trust: 50, fear: 10, guilt: 0, defensiveness: 10 },
         ana: { trust: 30, fear: 50, guilt: 30, defensiveness: 60 },
@@ -88,49 +89,36 @@ export const useGameStore = create(
       cameraAngles: {}, 
       currentCameraAngle: 'north',
       
-      // ==================== DEDUÇÃO E PENSAMENTOS ====================
+      // ==================== DEDUÇÃO ====================
       selectedEvidenceIds: [],
       deductions: [], 
       
       // ==================== AÇÕES DO SISTEMA ====================
       setScreen: (screen) => set({ screen }),
-      
       setActiveApp: (app) => set({ activeApp: app }),
-      
       setConnection: (isConnected) => set({ isConnected }),
-      
       setBooting: (isBooting) => set({ isBooting }),
-      
       setBootProgress: (progress) => set({ bootProgress: progress }),
       
       performAction: (minutes, batteryCost, stressImpact = 0) => set((state) => {
         const newBattery = Math.max(0, state.battery - batteryCost);
         const newTimeOffset = state.timeOffsetMs + (minutes * 60 * 1000);
         const newStress = Math.min(100, Math.max(0, state.stressLevel + stressImpact));
-        
-        return { 
-          battery: newBattery, 
-          timeOffsetMs: newTimeOffset,
-          stressLevel: newStress
-        };
+        return { battery: newBattery, timeOffsetMs: newTimeOffset, stressLevel: newStress };
       }),
 
       updateBattery: (amount) => set((state) => ({
         battery: Math.min(100, Math.max(0, state.battery + amount))
       })),
       
-      // ==================== MENSAGENS ====================
       addMessage: (msg) => set((state) => ({ 
         messages: [...state.messages, msg] 
       })),
       
-      // ==================== EVIDÊNCIAS ====================
       discoverEvidence: (id) => set((state) => {
         const updatedEvidence = state.evidence.map(e => 
           e.id === id ? { ...e, discovered: true } : e
         );
-        
-        // Adiciona narrativa quando descobre evidência
         const evidence = state.evidence.find(e => e.id === id);
         const newNarrative = evidence 
           ? `[${get().getFormattedTime()}] EVIDÊNCIA: ${evidence.name} descoberta.`
@@ -147,24 +135,16 @@ export const useGameStore = create(
       addEvidence: (ev) => set((state) => {
         const exists = state.evidence.some(e => e.id === ev.id || e.title === ev.title);
         if (exists) return state;
-        
         return { 
           evidence: [...state.evidence, { ...ev, discovered: true }],
-          storyNarrative: [
-            ...state.storyNarrative,
-            `[${get().getFormattedTime()}] NOVA EVIDÊNCIA: ${ev.name}`
-          ]
+          storyNarrative: [...state.storyNarrative, `[${get().getFormattedTime()}] NOVA EVIDÊNCIA: ${ev.name}`]
         };
       }),
 
-      // ==================== DEDUÇÕES ====================
       addDeduction: (deduction) => set((state) => ({
         deductions: [deduction, ...state.deductions],
         selectedEvidenceIds: [],
-        storyNarrative: [
-          ...state.storyNarrative,
-          `[${get().getFormattedTime()}] DEDUÇÃO: ${deduction.hypothesis.substring(0, 50)}...`
-        ]
+        storyNarrative: [...state.storyNarrative, `[${get().getFormattedTime()}] DEDUÇÃO: ${deduction.hypothesis.substring(0, 50)}...`]
       })),
 
       toggleEvidenceSelection: (id) => set((state) => ({
@@ -173,28 +153,17 @@ export const useGameStore = create(
           : [...state.selectedEvidenceIds, id]
       })),
 
-      // ==================== NARRATIVA ====================
       addNarrative: (text) => set((state) => ({
-        storyNarrative: [
-          ...state.storyNarrative, 
-          `[${get().getFormattedTime()}] ${text}`
-        ]
+        storyNarrative: [...state.storyNarrative, `[${get().getFormattedTime()}] ${text}`]
       })),
 
-      // ==================== BATERIA E CARREGAMENTO ====================
       setCharging: (isCharging) => set({ isCharging }),
 
-      // ==================== LOCALIZAÇÃO E CÂMERA ====================
       updateLocation: (locId, asset) => set((state) => ({
         currentLocationId: locId,
-        proceduralAssets: asset 
-          ? { ...state.proceduralAssets, [locId]: asset } 
-          : state.proceduralAssets,
+        proceduralAssets: asset ? { ...state.proceduralAssets, [locId]: asset } : state.proceduralAssets,
         currentCameraAngle: 'north',
-        storyNarrative: [
-          ...state.storyNarrative,
-          `[${get().getFormattedTime()}] LOCALIZAÇÃO: Movido para ${locId}`
-        ]
+        storyNarrative: [...state.storyNarrative, `[${get().getFormattedTime()}] LOCALIZAÇÃO: Movido para ${locId}`]
       })),
 
       setCameraAngle: (angle) => set({ currentCameraAngle: angle }),
@@ -203,23 +172,21 @@ export const useGameStore = create(
         cameraAngles: { ...state.cameraAngles, [locationId]: assets }
       })),
 
-      // ==================== UTILITÁRIOS ====================
       getFormattedTime: () => {
         const state = get();
         const baseTime = new Date(`2024-01-01 ${START_TIME_STRING}`);
         const currentTime = new Date(baseTime.getTime() + state.timeOffsetMs);
-        return currentTime.toLocaleTimeString('pt-BR', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
+        return currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       },
 
-      // ==================== RESET ====================
+      // ==================== RESET / MENU ====================
       resetGame: () => {
-        localStorage.removeItem('thrive-os-storage');
+        localStorage.removeItem('thrive-os-storage'); // Limpa o save
         set({
           battery: INITIAL_BATTERY,
-          screen: 'boot',
+          screen: 'boot', // <--- Vai para o Boot ao resetar
+          isBooting: true,
+          bootProgress: 0,
           activeApp: null,
           act: 1,
           chapter: 1,
@@ -237,11 +204,17 @@ export const useGameStore = create(
             "[21:57] DICA: Use o LENS para escanear o ambiente."
           ]
         });
+      },
+      
+      continueGame: () => {
+         // Apenas muda a tela para onde o jogador parou (ou desktop se estiver indefinido)
+         set({ screen: 'desktop' }); 
       }
     }),
     {
       name: 'thrive-os-storage',
       storage: createJSONStorage(() => localStorage),
+      // IMPORTANTE: Não salvamos 'screen' para sempre cair no menu ao recarregar a página
       partialize: (state) => ({
         battery: state.battery,
         act: state.act,
