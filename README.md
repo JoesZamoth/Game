@@ -48,6 +48,7 @@ Antes de começar, certifique-se de ter instalado:
 2.  **Instale as dependências:**
     ```bash
     npm install
+    npm install openai python-dotenv
     ```
 
 3.  **Configuração de Variáveis de Ambiente:**
@@ -124,3 +125,4 @@ Desenvolvido com ❤️ e ☕ por <a href="https://www.google.com/search?q=https
 ```
 
 ```
+
